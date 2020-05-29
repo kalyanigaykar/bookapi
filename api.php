@@ -4,8 +4,6 @@ function getBookDetails($db){
 $rec_limit = 25;
 $whereArr = array();
 if(isset($_GET{'gutenberg_id'} ) && $_GET{'gutenberg_id'} != "") {
-	// $gutenberg_id = $_GET{'gutenberg_id'};
-	// if($gutenberg_id != "") $whereArr[] = "b.gutenberg_id = '" . $gutenberg_id . "'";
 	$gutenberg_id = explode(',',trim(strtolower($_GET{'gutenberg_id'})));
 	if($gutenberg_id != "") $whereArr[] = "LOWER(b.gutenberg_id) in ('" . implode("','", $gutenberg_id) . "')";
 }
@@ -14,8 +12,9 @@ $language = explode(',',strtolower(trim($_GET{'language'})));
 if($language != "") $whereArr[] = "LOWER(bl.code) in ('" . implode("','", $language) . "')";
 }
 if(isset($_GET{'mimetype'} ) && $_GET{'mimetype'} != "") {
-$mimetype = explode(',',strtolower(trim($_GET{'mimetype'})));
-if($mimetype != "") $whereArr[] = "LOWER(bf.mime_type) in ('" . implode("','", $mimetype) . "')";
+$mimetype = explode(',',strtolower($_GET{'mimetype'}));
+$mimetype = implode("|", $mimetype);
+if($mimetype != "") $whereArr[] = "LOWER(bf.mime_type) REGEXP '" . $mimetype . "'";
 }
 if(isset($_GET{'topic'} ) && $_GET{'topic'} != "") {
 $topic = explode(',',strtolower(trim($_GET{'topic'})));
@@ -27,6 +26,7 @@ $author = explode(',',trim(strtolower($_GET{'author'})));
 $author = trim(implode("|", $author));
 if($author != "") $whereArr[] = "LOWER(au.name) REGEXP '" . $author . "'";
 }
+
 if(isset($_GET{'title'}) && $_GET{'title'} != "") {
 $title = explode(',',trim(strtolower($_GET{'title'})));
 $title = trim(implode("|", $title));
@@ -44,7 +44,6 @@ $getDetails_cnt = "SELECT Count(distinct b.id) as number_of_book from books_book
 $fetch_books_cnt = mysqli_query($db, $getDetails_cnt) or die(mysqli_error($db));
 $book_cnt = mysqli_fetch_array($fetch_books_cnt);
 $num_book_cnt = $book_cnt[0];
-
 if($num_book_cnt > 0){         
  if(isset($_GET{'page'} ) && $_GET{'page'} != "" && $_GET{'page'} >1) {
 	//$page = $_GET{'page'} + 1;
@@ -61,6 +60,7 @@ $getDetails = "SELECT b.id,b.download_count, b.title,b.media_type,au.name,au.bir
 }else{
 $getDetails = "SELECT b.id,b.download_count, b.title,b.media_type,au.name,au.birth_year,au.death_year, bl.code as language  from books_book b left join books_book_authors ba ON b.id = ba.book_id left join books_author au on au.id = ba.author_id left join books_book_languages lan on b.id = lan.book_id left join books_language bl on bl.id = lan.language_id left join books_book_bookshelves bbb on b.id = bbb.book_id left join books_bookshelf bb on bbb.bookshelf_id = bb.id left join books_book_subjects bbs on bbs.book_id = b.id left join books_subject bs on bs.id = bbs.subject_id left join books_format bf on bf.book_id =b.id  group by b.id order by b.download_count desc limit $offset, $rec_limit";	
 }
+
 $List_array =array();
 $result_arr['count'] = $num_book_cnt;
 $result_arr['results'] =array();
